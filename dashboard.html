@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Dashboard</title>
+  <link rel="stylesheet" type="text/css" href="output.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #2C2F33; /* Discord background color */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Discord's default font */
+    }
+
+    .dashboard {
+      text-align: center;
+      color: #fff; /* White text color */
+      background-color: #36393F; /* Darker background for the dashboard */
+      border-radius: 10px;
+      padding: 40px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add shadow */
+    }
+
+    .avatar {
+      width: 100px; /* Adjust avatar size */
+      height: 100px;
+      border-radius: 50%; /* Make avatar round */
+      margin-bottom: 20px; /* Space between avatar and name */
+    }
+
+    .name {
+      font-size: 24px; /* Adjust font size */
+      font-weight: bold;
+    }
+
+    .logout-link {
+      color: #7289DA; /* Discord blue */
+      text-decoration: none;
+      font-size: 16px; /* Adjust font size */
+      margin-top: 20px; /* Space between name and logout link */
+    }
+
+    .logout-link:hover {
+      text-decoration: underline; /* Underline on hover */
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <img src='' id="avatar" class="avatar"/>
+    <div class="name" id="name"></div>
+    <a href="/" class="logout-link">Logout</a>
+  </div>
+
+  <script>
+    window.onload = () => {
+      const fragment = new URLSearchParams(window.location.hash.slice(1));
+      const [accessToken, tokenType] = [fragment.get('access_token'), fragment.get('token_type')];
+
+      if (!accessToken) {
+          window.location.href('/')
+          return (document.getElementById('login').style.display = 'block');
+      }
+
+      fetch('https://discord.com/api/users/@me', {
+          headers: {
+              authorization: `${tokenType} ${accessToken}`,
+          },
+      })
+      .then(result => result.json())
+      .then(response => {
+          const { username, discriminator, avatar, id} = response;
+          //set the welcome username string
+          document.getElementById('name').innerText = `Welcome, ${username}#${discriminator}`;
+
+          //set the avatar image by constructing a url to access discord's cdn
+          document.getElementById("avatar").src = `https://cdn.discordapp.com/avatars/${id}/${avatar}.jpg`;
+      })
+      .catch(console.error);
+    };
+  </script>
+</body>
+</html>
+
