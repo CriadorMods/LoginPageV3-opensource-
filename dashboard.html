@@ -14,40 +14,40 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background-color: #2C2F33; /* Discord background color */
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Discord's default font */
+      background-color: #2C2F33;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     }
 
     .dashboard {
       text-align: center;
-      color: #fff; /* White text color */
-      background-color: #36393F; /* Darker background for the dashboard */
+      color: #fff; 
+      background-color: #36393F; 
       border-radius: 10px;
       padding: 40px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add shadow */
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
     }
 
     .avatar {
-      width: 100px; /* Adjust avatar size */
+      width: 100px; 
       height: 100px;
-      border-radius: 50%; /* Make avatar round */
-      margin-bottom: 20px; /* Space between avatar and name */
+      border-radius: 50%; 
+      margin-bottom: 20px;
     }
 
     .name {
-      font-size: 24px; /* Adjust font size */
+      font-size: 24px; 
       font-weight: bold;
     }
 
     .logout-link {
-      color: #7289DA; /* Discord blue */
+      color: #7289DA; 
       text-decoration: none;
-      font-size: 16px; /* Adjust font size */
-      margin-top: 20px; /* Space between name and logout link */
+      font-size: 16px;
+      margin-top: 20px; 
     }
 
     .logout-link:hover {
-      text-decoration: underline; /* Underline on hover */
+      text-decoration: underline; 
     }
   </style>
 </head>
@@ -59,31 +59,46 @@
   </div>
 
   <script>
-    window.onload = () => {
-      const fragment = new URLSearchParams(window.location.hash.slice(1));
-      const [accessToken, tokenType] = [fragment.get('access_token'), fragment.get('token_type')];
+  window.onload = () => {
+  let accessToken = localStorage.getItem('discordAccessToken');
 
-      if (!accessToken) {
-          window.location.href('/')
-          return (document.getElementById('login').style.display = 'block');
-      }
+  if (!accessToken) {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    accessToken = fragment.get('access_token');
 
-      fetch('https://discord.com/api/users/@me', {
-          headers: {
-              authorization: `${tokenType} ${accessToken}`,
-          },
-      })
-      .then(result => result.json())
-      .then(response => {
-          const { username, discriminator, avatar, id} = response;
-          //set the welcome username string
-          document.getElementById('name').innerText = `Welcome, ${username}#${discriminator}`;
+    if (accessToken) {
+      localStorage.setItem('discordAccessToken', accessToken);
+      // Clean the URL fragment
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      window.location.href = '/';
+      return;
+    }
+  }
 
-          //set the avatar image by constructing a url to access discord's cdn
-          document.getElementById("avatar").src = `https://cdn.discordapp.com/avatars/${id}/${avatar}.jpg`;
-      })
-      .catch(console.error);
-    };
+  fetch('https://discord.com/api/users/@me', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+  .then(result => {
+    if (!result.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+    return result.json();
+  })
+  .then(response => {
+    const { username, discriminator, avatar, id } = response;
+    document.getElementById('name').innerText = `${username}#${discriminator}`;
+    document.getElementById("avatar").src = `https://cdn.discordapp.com/avatars/${id}/${avatar}.jpg`;
+  })
+  .catch(error => {
+    console.error(error);
+    localStorage.removeItem('discordAccessToken');
+    window.location.href = '/';
+  });
+};
+    
   </script>
 </body>
 </html>
