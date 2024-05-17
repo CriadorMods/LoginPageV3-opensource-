@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="favicon.ico">
   <title>Discord Dashboard</title>
   <link rel="stylesheet" type="text/css" href="output.css">
-  <link rel="icon"  href="favicon.ico">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     body {
@@ -15,7 +15,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background-color: #2C2F33;
+      background-color: #2C2F33; 
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     }
 
@@ -54,22 +54,26 @@
 </head>
 <body>
   <div class="dashboard">
-    <img src='' id="avatar" class="avatar"/>
-    <div class="name" id="name"></div>
-    <a href="https://criadormods.github.io/LoginPageV3-opensource-/" class="logout-link">Logout</a>
+  <div class="user-tab" id="user-tab">
+    <div id="loading" class="loading">Loading...</div>
+    <div id="error" class="error hidden" role="alert">Failed to load user data. Please try again.</div>
+    <img src="" alt="User Avatar" id="avatar" class="hidden">
+    <span id="name" aria-live="polite"></span>
+    <button onclick="logout()" id="logout-button" class="hidden" aria-label="Logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
   </div>
+</div>
 
   <script>
-    
-window.onload = async () => {
+   document.addEventListener('DOMContentLoaded', async () => {
   try {
+    setLoadingState(true);
     const accessToken = getAccessToken();
-    
+
     if (!accessToken) {
-      window.location.href = '/';
+      redirectToLogin();
       return;
     }
-    
+
     const user = await fetchUserData(accessToken);
     if (user) {
       displayUser(user);
@@ -79,26 +83,29 @@ window.onload = async () => {
   } catch (error) {
     console.error('An error occurred:', error);
     handleLoginFailure();
+  } finally {
+    setLoadingState(false);
   }
-};
+});
+
+function setLoadingState(isLoading) {
+  document.getElementById('loading').classList.toggle('hidden', !isLoading);
+  document.getElementById('avatar').classList.toggle('hidden', isLoading);
+  document.getElementById('name').classList.toggle('hidden', isLoading);
+  document.getElementById('logout-button').classList.toggle('hidden', isLoading);
+  document.getElementById('error').classList.add('hidden');
+}
 
 function getAccessToken() {
-  // Check if there's an access token in local storage
-  let accessToken = localStorage.getItem('discordAccessToken');
-
-  // If there's no access token in local storage, check the URL fragment
+  let accessToken = getCookie('discordAccessToken');
   if (!accessToken) {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     accessToken = fragment.get('access_token');
-
-    // If there's an access token in the URL fragment, save it to local storage
     if (accessToken) {
-      localStorage.setItem('discordAccessToken', accessToken);
-      // Optionally, you can remove the access token from the URL for cleaner URLs
+      setCookie('discordAccessToken', accessToken, 1);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }
-
   return accessToken;
 }
 
@@ -112,9 +119,8 @@ async function fetchUserData(accessToken) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Unauthorized, token might be expired
         console.error('Access token expired or invalid');
-        localStorage.removeItem('discordAccessToken');
+        deleteCookie('discordAccessToken');
         return null;
       }
       throw new Error('Failed to fetch user data');
@@ -131,14 +137,45 @@ function displayUser(user) {
   const { username, discriminator, avatar, id } = user;
   document.getElementById('name').innerText = `${username}#${discriminator}`;
   document.getElementById("avatar").src = `https://cdn.discordapp.com/avatars/${id}/${avatar}.jpg`;
+  document.getElementById('avatar').classList.remove('hidden');
 }
 
 function handleLoginFailure() {
-  localStorage.removeItem('discordAccessToken');
-  window.location.href = '/';
+  deleteCookie('discordAccessToken');
+  document.getElementById('error').classList.remove('hidden');
 }
 
-    
+function redirectToLogin() {
+  window.location.href = 'https://mypagelogin.netlify.app/';
+}
+
+function logout() {
+  deleteCookie('discordAccessToken');
+  redirectToLogin();
+}
+
+function setCookie(name, value, days) {
+  const date = new Date();
+  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+  const expires = "expires=" + date.toUTCString();
+  document.cookie = name + "=" + value + ";" + expires + ";path=/;secure";
+}
+
+function getCookie(name) {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
+function deleteCookie(name) {
+  document.cookie = name + "=; Max-Age=-99999999;";
+}
+
   </script>
 </body>
 </html>
